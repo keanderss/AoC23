@@ -66,16 +66,24 @@ def findNumb(m1,m2,x,y):
                     m2[y2][x2] = numb[0]
                     findNumb(m1,m2,x2,y2)
 
-yi = 0
-for y in m:
-    xi = 0
-    for x in y:
-        ##symb = re.findall("@|#|[$]|%|&|/|=|[+]|-|[*]", m[yi][xi])     # @#$%&/=+-*
+# my dogshit code
+# yi = 0
+# for y in m:
+#     xi = 0
+#     for x in y:
+#         ##symb = re.findall("@|#|[$]|%|&|/|=|[+]|-|[*]", m[yi][xi])     # @#$%&/=+-*
+#         symb = re.findall("[^0-9.]", m[yi][xi])
+#         if len(symb) > 0:
+#             findNumb(m, m2, xi, yi)
+#         xi += 1
+#     yi += 1
+
+# ChatGPT bugfix that actually works!
+for yi in range(lines):
+    for xi in range(slen):
         symb = re.findall("[^0-9.]", m[yi][xi])
         if len(symb) > 0:
             findNumb(m, m2, xi, yi)
-        xi += 1
-    yi += 1
 
 numArray = []
 def numBuilder():
