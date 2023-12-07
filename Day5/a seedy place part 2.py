@@ -1,7 +1,6 @@
 import linecache
 import threading
 
-tcount = 10000
 filename = "input.txt"
 seedranges = []
 seedtosoil = []
@@ -51,7 +50,7 @@ def getseedlocation(seed):
     locations.append(location)
     print("Seed " + str(seed) + ", soil " + str(soil) + ", fertilizer " + str(fertilizer) + ", water " + str(
         water) + ", light " + str(light) + ", temperature " + str(temperature) + ", humidity " + str(
-        humidity) + ", location " + str(location) + ".")
+        humidity) + ", location " + str(location) + ".\n")
 
 
 def createmap(map, i):
@@ -68,56 +67,56 @@ def createmap(map, i):
 def printmap(m):
     i = 0
     for y in m:
-        print("y" + str(i) + ": \t" + str(y))
+        print("y" + str(i) + ": \t" + str(y) + "\n")
         i += 1
 
 
 def initialize():
-    print("Initializing!")
+    print("Initializing!\n")
     i = 0
     mapcount = 0
     while True:
         i += 1
         line = linecache.getline(filename, i)
         if line.startswith("seeds:"):
-            print("Loading seeds!")
+            print("Loading seeds!\n")
             linearrway = line.split()
             for j in linearrway:
                 if j.isnumeric():
                     seedranges.append(j)
             print(seedranges)
         elif line.startswith("seed-to-soil map:"):
-            print("Creating seed to soil map!")
+            print("Creating seed to soil map!\n")
             createmap(seedtosoil, i + 1)
             print(seedtosoil)
             mapcount += 1
         elif line.startswith("soil-to-fertilizer map:"):
-            print("Creating soil to fertilizer map!")
+            print("Creating soil to fertilizer map!\n")
             createmap(soiltofertilizer, i + 1)
             print(soiltofertilizer)
             mapcount += 1
         elif line.startswith("fertilizer-to-water map:"):
-            print("Creating fertilizer to water map!")
+            print("Creating fertilizer to water map!\n")
             createmap(fertilizertowater, i + 1)
             print(fertilizertowater)
             mapcount += 1
         elif line.startswith("water-to-light map:"):
-            print("Creating water to light map!")
+            print("Creating water to light map!\n")
             createmap(watertolight, i + 1)
             print(watertolight)
             mapcount += 1
         elif line.startswith("light-to-temperature map:"):
-            print("Creating light to temperature map!")
+            print("Creating light to temperature map!\n")
             createmap(lighttotemperature, i + 1)
             print(lighttotemperature)
             mapcount += 1
         elif line.startswith("temperature-to-humidity map:"):
-            print("Creating temperature to humidity map!")
+            print("Creating temperature to humidity map!\n")
             createmap(temperaturetohumidity, i + 1)
             print(temperaturetohumidity)
             mapcount += 1
         elif line.startswith("humidity-to-location map:"):
-            print("Creating humidity to location map!")
+            print("Creating humidity to location map!\n")
             createmap(humiditytolocation, i + 1)
             print(humiditytolocation)
             mapcount += 1
@@ -125,7 +124,7 @@ def initialize():
             if mapcount == 7:
                 break
             if i > 999:
-                print("Initialization error!")
+                print("Initialization error!\n")
                 break
 
 
@@ -149,45 +148,55 @@ rangepairs = []
 rangestarts = []
 rangeends = []
 def run():
+    print(seedranges)
     for i in range(len(seedranges)):
         if i % 2 == 0:
             seedi = seedranges[i]
-            # print("seedi: " + seedi)
+            print("seedi: " + seedi)
             seedinti = int(seedi)
             seedp1 = seedranges[i + 1]
-            # print("seedp1: " + seedp1)
+            print("seedp1: " + seedp1)
             seedintp1 = int(seedp1)
             pair = (seedinti, seedinti + seedintp1)
             rangestarts.append(seedinti)
             rangeends.append(seedinti + seedintp1)
             rangepairs.append(pair)
-            # print(rangepairs)
+            print(rangepairs)
 
 def scanrange(start, stop):
-    print("hi")
     for s in range(start, stop):
+        print("range: " + str(start) + " " + str(stop))
         getseedlocation(s)
 run()
 
-rangemin = min(rangestarts)
-rangemax = max(rangeends)
-fullrange = rangemax - rangemin
-print(fullrange)
+#rangemin = min(rangestarts)
+#rangemax = max(rangeends)
+#fullrange = rangemax - rangemin
+#print(fullrange)
 
-n = fullrange // tcount
-print(n)
+tcount = len(rangepairs)
+print("tcount: " + str(tcount))
 
 threads = []
-
 for i in range(tcount):
-    t = threading.Thread(target=scanrange, args=(i * n, (i + 1) * n))
+    #print(i)
+    #print(rangepairs)
+    #print("inputrange: " + str(rangepairs[i][0]) + " " + str(rangepairs[i][1]))
+    t = threading.Thread(target=scanrange, args=(rangepairs[i][0], rangepairs[i][1]))
     threads.append(t)
 
 for t in threads:
     t.start()
 
+trunning = len(threads)
+while trunning > 0:
+    trunning = len(threads)
+    print("Active threads: " + str(trunning) + "\n")
+    for t in threads:
+        if not t.is_alive():
+            t.join()
+            threads.remove(t)
 
-
-
-
-print("Lowest location: " + str(min(locations)))
+print("locations: " + str(locations))
+if len(locations) > 0:
+    print("Lowest location: " + str(min(locations)) + "\n")
