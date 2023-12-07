@@ -16,7 +16,7 @@ locations = []
 def convert(m, i):
     # print()
     # print("Starting conversion!")
-    for j in range(3):
+    for j in range(len(m)):
         #mapj0 = m[j][0]
         #mapj0int = int(m[j][0])
         #mapj1 = m[j][1]
