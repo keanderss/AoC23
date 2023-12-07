@@ -1,6 +1,7 @@
 import linecache
 import threading
 
+tcount = 10000
 filename = "input.txt"
 seedranges = []
 seedtosoil = []
@@ -144,51 +145,49 @@ printmap(temperaturetohumidity)
 print()
 printmap(humiditytolocation)
 print()
-
 rangepairs = []
+rangestarts = []
+rangeends = []
 def run():
     for i in range(len(seedranges)):
         if i % 2 == 0:
             seedi = seedranges[i]
-            print("seedi: " + seedi)
+            # print("seedi: " + seedi)
             seedinti = int(seedi)
             seedp1 = seedranges[i + 1]
-            print("seedp1: " + seedp1)
+            # print("seedp1: " + seedp1)
             seedintp1 = int(seedp1)
             pair = (seedinti, seedinti + seedintp1)
+            rangestarts.append(seedinti)
+            rangeends.append(seedinti + seedintp1)
             rangepairs.append(pair)
-            print(rangepairs)
-
-
-
-
+            # print(rangepairs)
 
 def scanrange(start, stop):
     print("hi")
     for s in range(start, stop):
         getseedlocation(s)
-
 run()
 
-t1 = threading.Thread(target=scanrange, args=(rangepairs[0][0], rangepairs[0][0] + rangepairs[0][1]))
-t2 = threading.Thread(target=scanrange, args=(rangepairs[1][0], rangepairs[1][0] + rangepairs[1][1]))
-t3 = threading.Thread(target=scanrange, args=(rangepairs[2][0], rangepairs[2][0] + rangepairs[2][1]))
-t4 = threading.Thread(target=scanrange, args=(rangepairs[3][0], rangepairs[3][0] + rangepairs[3][1]))
-t5 = threading.Thread(target=scanrange, args=(rangepairs[4][0], rangepairs[4][0] + rangepairs[4][1]))
-t6 = threading.Thread(target=scanrange, args=(rangepairs[5][0], rangepairs[5][0] + rangepairs[5][1]))
-t7 = threading.Thread(target=scanrange, args=(rangepairs[6][0], rangepairs[6][0] + rangepairs[6][1]))
-t8 = threading.Thread(target=scanrange, args=(rangepairs[7][0], rangepairs[7][0] + rangepairs[7][1]))
-t9 = threading.Thread(target=scanrange, args=(rangepairs[8][0], rangepairs[8][0] + rangepairs[8][1]))
-t10 = threading.Thread(target=scanrange, args=(rangepairs[9][0], rangepairs[9][0] + rangepairs[9][1]))
-t1.start()
-t2.start()
-t3.start()
-t4.start()
-t5.start()
-t6.start()
-t7.start()
-t8.start()
-t9.start()
-t10.start()
+rangemin = min(rangestarts)
+rangemax = max(rangeends)
+fullrange = rangemax - rangemin
+print(fullrange)
+
+n = fullrange // tcount
+print(n)
+
+threads = []
+
+for i in range(tcount):
+    t = threading.Thread(target=scanrange, args=(i * n, (i + 1) * n))
+    threads.append(t)
+
+for t in threads:
+    t.start()
+
+
+
+
 
 print("Lowest location: " + str(min(locations)))
