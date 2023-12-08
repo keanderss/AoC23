@@ -17,9 +17,9 @@ seedcount = 0
 
 
 def convert(m, i):
-    for j in range(len(m)):
-        if i in range(m[j][1], m[j][1] + m[j][2]):
-            return i + (m[j][0] - m[j][1])
+    for j in m:
+        if j[1] <= i <= j[1] + j[2]:
+            return i + (j[0] - j[1])
     return i
 
 
@@ -146,8 +146,27 @@ def scanrange(start, stop):
 
 def run():
     for i in range(tcount):
-        t = threading.Thread(target=scanrange, args=(rangepairs[i][0], rangepairs[i][1]))
-        threads.append(t)
+        div = int((rangepairs[i][1] - rangepairs[i][0]) / 10)
+        t0 = threading.Thread(target=scanrange, args=(rangepairs[i][0],  rangepairs[i][0] + div))
+        t1 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + div, rangepairs[i][0] + 2 * div))
+        t2 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 2 * div, rangepairs[i][0] + 3 * div))
+        t3 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 3 * div, rangepairs[i][0] + 4 * div))
+        t4 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 4 * div, rangepairs[i][0] + 5 * div))
+        t5 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 5 * div, rangepairs[i][0] + 6 * div))
+        t6 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 6 * div, rangepairs[i][0] + 7 * div))
+        t7 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 7 * div, rangepairs[i][0] + 8 * div))
+        t8 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 8 * div, rangepairs[i][0] + 9 * div))
+        t9 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 9 * div, rangepairs[i][1]))
+        threads.append(t0)
+        threads.append(t1)
+        threads.append(t2)
+        threads.append(t3)
+        threads.append(t4)
+        threads.append(t5)
+        threads.append(t6)
+        threads.append(t7)
+        threads.append(t8)
+        threads.append(t9)
 
     for t in threads:
         t.start()
