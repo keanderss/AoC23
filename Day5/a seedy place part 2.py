@@ -209,9 +209,9 @@ def comparerange(i, j, k):
 
 
 def run():
-    threadsperrange = tcount ** tcount
-    if threadsperrange > 10000:
-        threadsperrange = 10000
+    threadsperrange = tcount * (2 ** tcount)
+    if threadsperrange * tcount > 102400:
+        threadsperrange = int(102400 / tcount)
     for i in range(tcount):
         div = int((rangepairs[i][1] - rangepairs[i][0]) / threadsperrange)
         for j in range(threadsperrange):
