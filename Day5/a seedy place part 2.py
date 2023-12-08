@@ -1,4 +1,5 @@
 import linecache
+import sys
 import threading
 
 filename = "input.txt"
@@ -112,6 +113,7 @@ class ProgressTracker:
         self.seedtotalstr = str(seeds)
         self.remaining = seeds
         self.progress = int((1 - (self.remaining / self.seedtotal)) * 100)
+        self.lowestlocation = sys.maxsize
 
     def gettotal(self):
         return self.seedtotal
@@ -122,13 +124,18 @@ class ProgressTracker:
 
     def getprogressstr(self):
         return str(self.remaining) + "/" + self.seedtotalstr + " (" + str(self.progress) + "%)"
+    def getlowestlocation(self):
+        return self.lowestlocation
 
+    def checklocation(self, location):
+        if location < self.lowestlocation:
+            self.lowestlocation = location
 
 def scanrange(start, stop):
     for seed in range(start, stop):
-        print("Seeds left: " + pt.getprogressstr() + "\tChecking seed: " + str(
-            seed) + "\tActive threads: " + str(threading.active_count()))
-        locations.append(convert(humiditytolocation, convert(temperaturetohumidity, convert(lighttotemperature,
+        print("Remaining: " + pt.getprogressstr() + "\tSeed: " + str(
+            seed) + " \tThreads: " + str(threading.active_count()) + " \tLocation: " + str(pt.getlowestlocation()))
+        pt.checklocation(convert(humiditytolocation, convert(temperaturetohumidity, convert(lighttotemperature,
                                                                                             convert(watertolight,
                                                                                                     convert(
                                                                                                         fertilizertowater,
@@ -138,9 +145,6 @@ def scanrange(start, stop):
                                                                                                                 seedtosoil,
                                                                                                                 seed))))))))
         pt.subremaining()
-    if len(locations) > 0:
-        print("Lowest location: " + str(min(locations)))
-    print("Active threads: " + str(threading.active_count()) + "")
 
 
 def run():
