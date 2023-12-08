@@ -138,7 +138,6 @@ def scanrange(start, stop):
                                                                                                                 seedtosoil,
                                                                                                                 seed))))))))
         pt.subremaining()
-    print("locations: " + str(locations))
     if len(locations) > 0:
         print("Lowest location: " + str(min(locations)))
     print("Active threads: " + str(threading.active_count()) + "")
