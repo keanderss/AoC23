@@ -15,6 +15,7 @@ locations = []
 rangepairs = []
 threads = []
 seedcount = 0
+rangemaps = []
 
 
 def convert(m, i):
@@ -60,36 +61,43 @@ def initialize():
             print("Creating seed to soil map!")
             createmap(seedtosoil, i + 1)
             print(seedtosoil)
+            rangemaps.append(seedtosoil)
             mapcount += 1
         elif line.startswith("soil-to-fertilizer map:"):
             print("Creating soil to fertilizer map!")
             createmap(soiltofertilizer, i + 1)
             print(soiltofertilizer)
+            rangemaps.append(soiltofertilizer)
             mapcount += 1
         elif line.startswith("fertilizer-to-water map:"):
             print("Creating fertilizer to water map!")
             createmap(fertilizertowater, i + 1)
             print(fertilizertowater)
+            rangemaps.append(fertilizertowater)
             mapcount += 1
         elif line.startswith("water-to-light map:"):
             print("Creating water to light map!")
             createmap(watertolight, i + 1)
             print(watertolight)
+            rangemaps.append(watertolight)
             mapcount += 1
         elif line.startswith("light-to-temperature map:"):
             print("Creating light to temperature map!")
             createmap(lighttotemperature, i + 1)
             print(lighttotemperature)
+            rangemaps.append(lighttotemperature)
             mapcount += 1
         elif line.startswith("temperature-to-humidity map:"):
             print("Creating temperature to humidity map!")
             createmap(temperaturetohumidity, i + 1)
             print(temperaturetohumidity)
+            rangemaps.append(temperaturetohumidity)
             mapcount += 1
         elif line.startswith("humidity-to-location map:"):
             print("Creating humidity to location map!")
             createmap(humiditytolocation, i + 1)
             print(humiditytolocation)
+            rangemaps.append(humiditytolocation)
             mapcount += 1
         else:
             if mapcount == 7:
@@ -114,6 +122,7 @@ class ProgressTracker:
         self.remaining = seeds
         self.progress = int((1 - (self.remaining / self.seedtotal)) * 100)
         self.lowestlocation = sys.maxsize
+        self.threadcount = 0
 
     def gettotal(self):
         return self.seedtotal
@@ -124,17 +133,30 @@ class ProgressTracker:
 
     def getprogressstr(self):
         return str(self.remaining) + "/" + self.seedtotalstr + " (" + str(self.progress) + "%)"
-    def getlowestlocation(self):
+
+    def getlowest(self):
         return self.lowestlocation
 
     def checklocation(self, location):
         if location < self.lowestlocation:
             self.lowestlocation = location
 
+    def trackthread(self):
+        self.threadcount += 1
+
+    def stoptracking(self):
+        self.threadcount -= 1
+        if self.threadcount == 0:
+            print()
+            print("Done! Lowest location: " + str(self.getlowest()))
+            print()
+
+
 def scanrange(start, stop):
+    pt.trackthread()
     for seed in range(start, stop):
         print("Remaining: " + pt.getprogressstr() + "\tSeed: " + str(
-            seed) + " \tThreads: " + str(threading.active_count()) + " \tLocation: " + str(pt.getlowestlocation()))
+            seed) + " \tThreads: " + str(threading.active_count()) + " \tLowest: " + str(pt.getlowest()))
         pt.checklocation(convert(humiditytolocation, convert(temperaturetohumidity, convert(lighttotemperature,
                                                                                             convert(watertolight,
                                                                                                     convert(
@@ -145,46 +167,78 @@ def scanrange(start, stop):
                                                                                                                 seedtosoil,
                                                                                                                 seed))))))))
         pt.subremaining()
+    pt.stoptracking()
+
+
+def comparerange(i, j, k):
+    rangelist = []
+    print("i: " + str(i) + " j: " + str(j) + " k: " + str(k))
+    if k == 6:
+        x = convert(rangemaps[k], i), convert(rangemaps[k], j)
+        print(x)
+        return x
+    else:
+        for r in rangemaps[k]:
+            if r[1] < i < j < r[1] + r[2]:
+                print("r:" + str(r[1]) + " - " + str(r[1] + r[2]))
+                x = comparerange(convert(rangemaps[k], i), convert(rangemaps[k], j), k + 1)
+                if isinstance(x, tuple):
+                    rangelist.append(x)
+                else:
+                    rangelist.extend(x)
+            if r[1] < i < r[1] + r[2] < j:
+                print("r:" + str(r[1]) + " - " + str(r[1] + r[2]))
+                x = comparerange(convert(rangemaps[k], i), convert(rangemaps[k], r[1] + r[2]), k + 1)
+                if isinstance(x, tuple):
+                    rangelist.append(x)
+                else:
+                    rangelist.extend(x)
+            if i < r[1] < j < r[1] + r[2]:
+                print("r:" + str(r[1]) + " - " + str(r[1] + r[2]))
+                x = comparerange(convert(rangemaps[k], r[1]), convert(rangemaps[k], j), k + 1)
+                if isinstance(x, tuple):
+                    rangelist.append(x)
+                else:
+                    rangelist.extend(x)
+        x = comparerange(convert(rangemaps[k], i), convert(rangemaps[k], j), k + 1)
+        if isinstance(x, tuple):
+            rangelist.append(x)
+        else:
+            rangelist.extend(x)
+    return rangelist
 
 
 def run():
+    threadsperrange = tcount ** tcount
+    if threadsperrange > 10000:
+        threadsperrange = 10000
     for i in range(tcount):
-        div = int((rangepairs[i][1] - rangepairs[i][0]) / 10)
-        t0 = threading.Thread(target=scanrange, args=(rangepairs[i][0],  rangepairs[i][0] + div))
-        t1 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + div, rangepairs[i][0] + 2 * div))
-        t2 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 2 * div, rangepairs[i][0] + 3 * div))
-        t3 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 3 * div, rangepairs[i][0] + 4 * div))
-        t4 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 4 * div, rangepairs[i][0] + 5 * div))
-        t5 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 5 * div, rangepairs[i][0] + 6 * div))
-        t6 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 6 * div, rangepairs[i][0] + 7 * div))
-        t7 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 7 * div, rangepairs[i][0] + 8 * div))
-        t8 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 8 * div, rangepairs[i][0] + 9 * div))
-        t9 = threading.Thread(target=scanrange, args=(rangepairs[i][0] + 9 * div, rangepairs[i][1]))
-        threads.append(t0)
-        threads.append(t1)
-        threads.append(t2)
-        threads.append(t3)
-        threads.append(t4)
-        threads.append(t5)
-        threads.append(t6)
-        threads.append(t7)
-        threads.append(t8)
-        threads.append(t9)
+        div = int((rangepairs[i][1] - rangepairs[i][0]) / threadsperrange)
+        for j in range(threadsperrange):
+            thread_args = (rangepairs[i][0] + j * div, rangepairs[i][0] + (j + 1) * div)
+            thread = threading.Thread(target=scanrange, args=thread_args)
+            threads.append(thread)
 
     for t in threads:
         t.start()
 
+def run2():
+    for i in range(tcount):
+        print("range: " + str(rangepairs[i][0]) + " - " + str(rangepairs[i][1]))
+        x = comparerange(rangepairs[i][0], rangepairs[i][1], 0)
+        print()
+        for y in x:
+            pt.checklocation(y[0])
+            pt.checklocation(y[1])
 
 tcount = initialize()
 for i in range(len(seedranges)):
     if i % 2 == 0:
         seedc = seedranges[i + 1]
-        print("p1: " + str(seedc))
         seedcount += int(seedc)
 seedsremaining = seedcount
 seedstr = str(seedcount)
 pt = ProgressTracker(seedcount)
-print("seedcount: " + seedstr)
 print()
 printmap(seedtosoil)
 print()
@@ -200,4 +254,10 @@ printmap(temperaturetohumidity)
 print()
 printmap(humiditytolocation)
 print()
-run()
+# retard mode
+# run()
+
+# for people who are smarter than me mode
+run2()
+
+print("Done! Lowest location: " + str(pt.getlowest()))
