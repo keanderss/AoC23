@@ -1,118 +1,9 @@
 import linecache
 import sys
 import threading
-
-filename = "input.txt"
-seedranges = []
-seedtosoil = []
-soiltofertilizer = []
-fertilizertowater = []
-watertolight = []
-lighttotemperature = []
-temperaturetohumidity = []
-humiditytolocation = []
-locations = []
-rangepairs = []
-threads = []
-seedcount = 0
-rangemaps = []
-
-
-def convert(m, i):
-    for j in m:
-        if j[1] <= i <= j[1] + j[2]:
-            return i + (j[0] - j[1])
-    return i
-
-
-def createmap(map, i):
-    while True:
-        line = linecache.getline(filename, i)
-        linearray = line.split()
-        if len(linearray) == 0:
-            break
-        map.append([int(numeric_string) for numeric_string in linearray])
-        i += 1
-    return map
-
-
-def printmap(m):
-    i = 0
-    for y in m:
-        print("y" + str(i) + ": \t" + str(y))
-        i += 1
-
-
-def initialize():
-    print("Initializing!\n")
-    i = 0
-    mapcount = 0
-    while True:
-        i += 1
-        line = linecache.getline(filename, i)
-        if line.startswith("seeds:"):
-            print("Loading seeds!")
-            linearrway = line.split()
-            for j in linearrway:
-                if j.isnumeric():
-                    seedranges.append(j)
-            print(seedranges)
-        elif line.startswith("seed-to-soil map:"):
-            print("Creating seed to soil map!")
-            createmap(seedtosoil, i + 1)
-            print(seedtosoil)
-            rangemaps.append(seedtosoil)
-            mapcount += 1
-        elif line.startswith("soil-to-fertilizer map:"):
-            print("Creating soil to fertilizer map!")
-            createmap(soiltofertilizer, i + 1)
-            print(soiltofertilizer)
-            rangemaps.append(soiltofertilizer)
-            mapcount += 1
-        elif line.startswith("fertilizer-to-water map:"):
-            print("Creating fertilizer to water map!")
-            createmap(fertilizertowater, i + 1)
-            print(fertilizertowater)
-            rangemaps.append(fertilizertowater)
-            mapcount += 1
-        elif line.startswith("water-to-light map:"):
-            print("Creating water to light map!")
-            createmap(watertolight, i + 1)
-            print(watertolight)
-            rangemaps.append(watertolight)
-            mapcount += 1
-        elif line.startswith("light-to-temperature map:"):
-            print("Creating light to temperature map!")
-            createmap(lighttotemperature, i + 1)
-            print(lighttotemperature)
-            rangemaps.append(lighttotemperature)
-            mapcount += 1
-        elif line.startswith("temperature-to-humidity map:"):
-            print("Creating temperature to humidity map!")
-            createmap(temperaturetohumidity, i + 1)
-            print(temperaturetohumidity)
-            rangemaps.append(temperaturetohumidity)
-            mapcount += 1
-        elif line.startswith("humidity-to-location map:"):
-            print("Creating humidity to location map!")
-            createmap(humiditytolocation, i + 1)
-            print(humiditytolocation)
-            rangemaps.append(humiditytolocation)
-            mapcount += 1
-        else:
-            if mapcount == 7:
-                for i in range(len(seedranges)):
-                    if i % 2 == 0:
-                        seedi = seedranges[i]
-                        seedinti = int(seedi)
-                        seedp1 = seedranges[i + 1]
-                        seedintp1 = int(seedp1)
-                        pair = (seedinti, seedinti + seedintp1)
-                        rangepairs.append(pair)
-                return len(rangepairs)
-            if i > 999:
-                print("Initialization error!")
-                break
+import multiprocessing as mp
+import time
+import os
 
 
 class ProgressTracker:
@@ -127,12 +18,14 @@ class ProgressTracker:
     def gettotal(self):
         return self.seedtotal
 
-    def subremaining(self):
-        self.remaining -= 1
+    def subremaining(self, rr):
+        self.remaining -= rr
+        if self.remaining < 0:
+            self.remaining = 0
         self.progress = int((1 - (self.remaining / self.seedtotal)) * 100)
 
-    def getprogressstr(self):
-        return str(self.remaining) + "/" + self.seedtotalstr + " (" + str(self.progress) + "%)"
+    def getprogress(self):
+        return str(self.progress)
 
     def getlowest(self):
         return self.lowestlocation
@@ -144,50 +37,102 @@ class ProgressTracker:
     def trackthread(self):
         self.threadcount += 1
 
-    def stoptracking(self):
-        self.threadcount -= 1
-        if self.threadcount == 0:
-            print()
-            print("Done! Lowest location: " + str(self.getlowest()))
-            print()
+    def getresult(self):
+        print("Lowest location: " + str(self.getlowest()))
+
+    def setseedcount(self, seedcount):
+        self.seedtotal = seedcount
+        self.seedtotalstr = str(seedcount)
+        self.remaining = seedcount
 
 
-def scanrange(start, stop):
-    pt.trackthread()
-    for seed in range(start, stop):
-        print("Remaining: " + pt.getprogressstr() + "\tSeed: " + str(
-            seed) + " \tThreads: " + str(threading.active_count()) + " \tLowest: " + str(pt.getlowest()))
-        pt.checklocation(convert(humiditytolocation, convert(temperaturetohumidity, convert(lighttotemperature,
-                                                                                            convert(watertolight,
-                                                                                                    convert(
-                                                                                                        fertilizertowater,
-                                                                                                        convert(
-                                                                                                            soiltofertilizer,
-                                                                                                            convert(
-                                                                                                                seedtosoil,
-                                                                                                                seed))))))))
-        pt.subremaining()
-    pt.stoptracking()
+def initialize():
+    i = 0
+    mapcount = 0
+    while True:
+        i += 1
+        line = linecache.getline(filename, i)
+        if line.startswith("seeds:"):
+            linearrway = line.split()
+            for j in linearrway:
+                if j.isnumeric():
+                    seedranges.append(j)
+        elif line.startswith("seed-to-soil map:"):
+            createmap(seedtosoil, i + 1)
+            rangemaps.append(seedtosoil)
+            mapcount += 1
+        elif line.startswith("soil-to-fertilizer map:"):
+            createmap(soiltofertilizer, i + 1)
+            rangemaps.append(soiltofertilizer)
+            mapcount += 1
+        elif line.startswith("fertilizer-to-water map:"):
+            createmap(fertilizertowater, i + 1)
+            rangemaps.append(fertilizertowater)
+            mapcount += 1
+        elif line.startswith("water-to-light map:"):
+            createmap(watertolight, i + 1)
+            rangemaps.append(watertolight)
+            mapcount += 1
+        elif line.startswith("light-to-temperature map:"):
+            createmap(lighttotemperature, i + 1)
+            rangemaps.append(lighttotemperature)
+            mapcount += 1
+        elif line.startswith("temperature-to-humidity map:"):
+            createmap(temperaturetohumidity, i + 1)
+            rangemaps.append(temperaturetohumidity)
+            mapcount += 1
+        elif line.startswith("humidity-to-location map:"):
+            createmap(humiditytolocation, i + 1)
+            rangemaps.append(humiditytolocation)
+            mapcount += 1
+        else:
+            if mapcount == 7:
+                for k in range(len(seedranges)):
+                    if k % 2 == 0:
+                        seedk = seedranges[k]
+                        seedintk = int(seedk)
+                        seedp1 = seedranges[k + 1]
+                        seedintp1 = int(seedp1)
+                        pair = (seedintk, seedintk + seedintp1)
+                        rangepairs.append(pair)
+                return len(rangepairs)
+            if i > 999:
+                print("Initialization error!")
+                break
+
+
+def createmap(m, i):
+    while True:
+        line = linecache.getline(filename, i)
+        linearray = line.split()
+        if len(linearray) == 0:
+            break
+        m.append([int(numeric_string) for numeric_string in linearray])
+        i += 1
+    return m
+
+
+def convert(m, i):
+    for j in m:
+        if j[1] <= i <= j[1] + j[2]:
+            return i + (j[0] - j[1])
+    return i
 
 
 def comparerange(i, j, k):
     rangelist = []
-    print("i: " + str(i) + " j: " + str(j) + " k: " + str(k))
     if k == 6:
         x = convert(rangemaps[k], i), convert(rangemaps[k], j)
-        print(x)
         return x
     else:
         for r in rangemaps[k]:
             if r[1] < i < j < r[1] + r[2]:
-                print("r:" + str(r[1]) + " - " + str(r[1] + r[2]))
                 x = comparerange(convert(rangemaps[k], i), convert(rangemaps[k], j), k + 1)
                 if isinstance(x, tuple):
                     rangelist.append(x)
                 else:
                     rangelist.extend(x)
             if r[1] < i < r[1] + r[2] < j:
-                print("r:" + str(r[1]) + " - " + str(r[1] + r[2]))
                 x = comparerange(convert(rangemaps[k], i), convert(rangemaps[k], r[1] + r[2]), k + 1)
                 if isinstance(x, tuple):
                     rangelist.append(x)
@@ -208,56 +153,104 @@ def comparerange(i, j, k):
     return rangelist
 
 
+def scanrange(start, stop):
+    time0 = time.time()
+    if stop - start > 0:
+        for seed in range(start, stop):
+            progresstracker.checklocation(
+                convert(humiditytolocation, convert(temperaturetohumidity, convert(lighttotemperature,
+                                                                                   convert(watertolight,
+                                                                                           convert(
+                                                                                               fertilizertowater,
+                                                                                               convert(
+                                                                                                   soiltofertilizer,
+                                                                                                   convert(
+                                                                                                       seedtosoil,
+                                                                                                       seed))))))))
+    else:
+        seed = start
+        progresstracker.checklocation(
+            convert(humiditytolocation, convert(temperaturetohumidity, convert(lighttotemperature,
+                                                                               convert(watertolight,
+                                                                                       convert(
+                                                                                           fertilizertowater,
+                                                                                           convert(
+                                                                                               soiltofertilizer,
+                                                                                               convert(
+                                                                                                   seedtosoil,
+                                                                                                   seed))))))))
+    time1 = time.time()
+    time2 = "{:.2f}".format(time1 - time0)
+    progresstracker.subremaining(stop - start + 1)
+    print("PID: " + str(os.getpid()) + " \tThreads: " + str(threading.active_count()) + " \tCompleted: " + str(
+        progresstracker.getprogress()) + "% \tTime: " + str(time2) + " s \tLowest: " + str(progresstracker.getlowest()))
+
+
 def run():
-    threadsperrange = tcount * (2 ** tcount)
-    if threadsperrange * tcount > 102400:
-        threadsperrange = int(102400 / tcount)
-    for i in range(tcount):
-        div = int((rangepairs[i][1] - rangepairs[i][0]) / threadsperrange)
-        for j in range(threadsperrange):
-            thread_args = (rangepairs[i][0] + j * div, rangepairs[i][0] + (j + 1) * div)
-            thread = threading.Thread(target=scanrange, args=thread_args)
-            threads.append(thread)
+    for i in range(rangecount):
+        x = comparerange(rangepairs[i][0], rangepairs[i][1], 0)
+        for y in x:
+            progresstracker.checklocation(y[0])
+            progresstracker.checklocation(y[1])
+    progresstracker.getresult()
+
+
+def run2(start, stop):
+    progresstracker.setseedcount(stop - start)
+    threadsperrange = rangecount ** rangecount
+    if threadsperrange * rangecount > 102400:
+        threadsperrange = int(102400 / rangecount)
+    div = int((stop - start) / threadsperrange)
+    for j in range(threadsperrange):
+        thread_args = (start + j * div, start + (j + 1) * div - 1)
+        thread = threading.Thread(target=scanrange, args=thread_args)
+        threads.append(thread)
+
+    if (stop - start + threadsperrange * div) > 0:
+        thread_args = (start + threadsperrange * div, stop)
+        t2 = threading.Thread(target=scanrange, args=thread_args)
+        threads.append(t2)
 
     for t in threads:
         t.start()
 
-def run2():
-    for i in range(tcount):
-        print("range: " + str(rangepairs[i][0]) + " - " + str(rangepairs[i][1]))
-        x = comparerange(rangepairs[i][0], rangepairs[i][1], 0)
-        print()
-        for y in x:
-            pt.checklocation(y[0])
-            pt.checklocation(y[1])
 
-tcount = initialize()
+filename = "input.txt"
+seedranges = []
+seedtosoil = []
+soiltofertilizer = []
+fertilizertowater = []
+watertolight = []
+lighttotemperature = []
+temperaturetohumidity = []
+humiditytolocation = []
+locations = []
+rangepairs = []
+threads = []
+seedcount = 0
+rangemaps = []
+rangecount = initialize()
+seedsremaining = seedcount
+seedstr = str(seedcount)
 for i in range(len(seedranges)):
     if i % 2 == 0:
         seedc = seedranges[i + 1]
         seedcount += int(seedc)
-seedsremaining = seedcount
-seedstr = str(seedcount)
-pt = ProgressTracker(seedcount)
-print()
-printmap(seedtosoil)
-print()
-printmap(soiltofertilizer)
-print()
-printmap(fertilizertowater)
-print()
-printmap(watertolight)
-print()
-printmap(lighttotemperature)
-print()
-printmap(temperaturetohumidity)
-print()
-printmap(humiditytolocation)
-print()
-# retard mode
-# run()
+progresstracker = ProgressTracker(seedcount)
 
-# for people who are smarter than me mode
-run2()
-
-print("Done! Lowest location: " + str(pt.getlowest()))
+if __name__ == "__main__":
+    print("1: actual solution")
+    print("2: brute force")
+    var = ""
+    while var != ("1" or "2"):
+        var = input()
+        if var == "1":
+            run()
+        elif var == "2":
+            processes = []
+            for r in rangepairs:
+                p = mp.Process(target=run2, args=r)
+                processes.append(p)
+            mp.parent_process()
+            for p in processes:
+                p.start()
