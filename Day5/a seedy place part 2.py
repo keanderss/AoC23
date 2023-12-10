@@ -245,12 +245,14 @@ if __name__ == "__main__":
     while var != ("1" or "2"):
         var = input()
         if var == "1":
+            t0 = time.time()
             run()
+            t1 = time.time()
+            print("Time to complete: " + str("{:.2f}".format(t1 - t0)) + " s")
         elif var == "2":
             processes = []
             for r in rangepairs:
                 p = mp.Process(target=run2, args=r)
                 processes.append(p)
-            mp.parent_process()
             for p in processes:
                 p.start()
