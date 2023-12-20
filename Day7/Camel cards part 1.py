@@ -13,5 +13,6 @@ for line in linecache.getlines("input.txt"):
 hands.sort()
 winnings = 0
 for i in range(len(hands)):
+    print(f"{i+1}:  \t{hands[i]}")
     winnings += (i+1)*hands[i][2]
 print(winnings)
